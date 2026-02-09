@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Essential Components – Glass Edition (Google Sheets Backend)</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Tailwind Config -->
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    },
+                    colors: {
+                        stone: { 50: '#fafaf9', 100: '#f5f5f4', 900: '#1c1917' },
+                        violet: { 50: '#f5f3ff', 100: '#ede9fe', 500: '#8b5cf6', 600: '#7c3aed', 700: '#6d28d9' }
+                    },
+                    animation: {
+                        'float-slow': 'floatSlow 8s ease-in-out infinite',
+                        'slide-up': 'slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'gradient-x': 'gradientX 3s ease infinite',
+                        'spin-slow': 'spin 3s linear infinite',
+                    },
+                    keyframes: {
+                        floatSlow: { '0%, 100%': { transform: 'translateY(0)' }, '50%': { transform: 'translateY(-15px)' } },
+                        slideUp: { '0%': { opacity: 0, transform: 'translateY(20px)' }, '100%': { opacity: 1, transform: 'translateY(0)' } },
+                        gradientX: { '0%, 100%': { backgroundPosition: '0% 50%' }, '50%': { backgroundPosition: '100% 50%' } }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Custom Styles -->
+    <style>
+        /* --- Core Aesthetic --- */
+        body { background: #f6f6ff; min-height: 100vh; color: #1c1917; padding-bottom: 100px; }
+        .dark body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color: #f8fafc; }
+
+        /* Ambient Lights */
+        .ambient-light { position: fixed; border-radius: 50%; filter: blur(120px); z-index: -1; pointer-events: none; opacity: 0.4; }
+        .light-1 { top: -15%; left: -10%; width: 600px; height: 600px; background: radial-gradient(circle, rgba(139, 92, 246, 0.25) 0%, transparent 70%); }
+        .light-2 { bottom: -15%; right: -10%; width: 700px; height: 700px; background: radial-gradient(circle, rgba(59, 130, 246, 0.2) 0%, transparent 70%); }
+
+        /* Glassmorphism */
+        .glass { background: rgba(255, 255, 255, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.4); }
+        .dark .glass { background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.05); }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3); box-shadow: 0 4px 24px rgba(0, 0, 0, 0.02);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); display: flex; flex-direction: column;
+        }
+        .dark .glass-card { background: rgba(30, 41, 59, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2); }
+        .glass-card:hover { transform: translateY(-6px); box-shadow: 0 20px 40px rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.3); }
+
+        /* Search Bar */
+        @keyframes gradient-flow { 
+            0% { background: linear-gradient(90deg, transparent 0%, rgba(96, 165, 250, 0.3) 25%, rgba(167, 139, 250, 0.3) 50%, rgba(248, 113, 113, 0.3) 75%, transparent 100%); background-position: 200% 0; }
+            50% { background: linear-gradient(90deg, transparent 0%, rgba(248, 113, 113, 0.3) 25%, rgba(96, 165, 250, 0.3) 50%, rgba(167, 139, 250, 0.3) 75%, transparent 100%); background-position: -200% 0; }
+            100% { background: linear-gradient(90deg, transparent 0%, rgba(167, 139, 250, 0.3) 25%, rgba(248, 113, 113, 0.3) 50%, rgba(96, 165, 250, 0.3) 75%, transparent 100%); background-position: 200% 0; }
+        }
+        @keyframes border-glow { 
+            0% { box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3), 0 0 20px rgba(96, 165, 250, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.5); }
+            33% { box-shadow: 0 0 0 2px rgba(167, 139, 250, 0.3), 0 0 20px rgba(167, 139, 250, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.5); }
+            66% { box-shadow: 0 0 0 2px rgba(248, 113, 113, 0.3), 0 0 20px rgba(248, 113, 113, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.5); }
+            100% { box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.3), 0 0 20px rgba(96, 165, 250, 0.2), inset 0 0 15px rgba(255, 255, 255, 0.5); }
+        }
+        @keyframes icon-glow { 
+            0% { filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.6)); color: rgba(96, 165, 250, 0.9); }
+            33% { filter: drop-shadow(0 0 2px rgba(167, 139, 250, 0.6)); color: rgba(167, 139, 250, 0.9); }
+            66% { filter: drop-shadow(0 0 2px rgba(248, 113, 113, 0.6)); color: rgba(248, 113, 113, 0.9); }
+            100% { filter: drop-shadow(0 0 2px rgba(96, 165, 250, 0.6)); color: rgba(96, 165, 250, 0.9); }
+        }
+        .animate-gradient-flow { animation: gradient-flow 10s linear infinite; background-size: 300% 100%; }
+        .animate-border-glow { animation: border-glow 8s ease-in-out infinite; }
+        .animate-icon-glow { animation: icon-glow 8s ease-in-out infinite; }
+
+        #searchInput {
+            caret-color: #8b5cf6;
+        }
+
+        #searchInput:focus {
+            background-color: rgba(255, 255, 255, 0.4);
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        #searchInput:focus-visible {
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Loader */
+        .loader {
+            width: 80px;
+            height: 80px;
+            border: 4px solid rgba(139, 92, 246, 0.1);
+            border-radius: 50%;
+            border-top-color: #8b5cf6;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Dropdown */
+        .glass-dropdown-menu { background: rgb(255, 255, 255); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.5); box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08); transform-origin: top right; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .dark .glass-dropdown-menu { background: rgb(30, 41, 59); border: 1px solid rgba(255, 255, 255, 0.08); }
+        .dropdown-hidden { opacity: 0; transform: scale(0.95) translateY(-10px); pointer-events: none; }
+        .dropdown-visible { opacity: 1; transform: scale(1) translateY(0); pointer-events: auto; }
+
+        /* IDE Modal */
+        .ide-modal-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(8px);
+            z-index: 1000; display: flex; align-items: center; justify-content: center;
+            opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .ide-modal-overlay.open { opacity: 1; pointer-events: auto; }
+
+        .ide-window {
+            width: 90%; max-width: 900px; height: 85vh; background: #1e1e1e;
+            border-radius: 12px; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex; flex-direction: column; overflow: hidden;
+            transform: scale(0.95); transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .ide-modal-overlay.open .ide-window { transform: scale(1); }
+
+        .ide-header { background: #252526; padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #333; }
+        .ide-header-left { display: flex; align-items: center; gap: 12px; }
+        
+        .mac-dots { display: flex; gap: 8px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; }
+        .dot.red { background: #ff5f56; }
+        .dot.yellow { background: #ffbd2e; }
+        .dot.green { background: #27c93f; }
+
+        .ide-title { color: #9d9d9d; font-size: 0.85rem; font-weight: 500; font-family: 'Fira Code', monospace; }
+
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-action-btn {
+            background: transparent; border: 1px solid #444; color: #ccc;
+            padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; cursor: pointer; transition: 0.2s;
+        }
+        .modal-action-btn:hover { background: #333; color: white; border-color: #666; }
+
+        .ide-tabs { display: flex; background: #2d2d2d; border-bottom: 1px solid #333; }
+        .ide-tab {
+            padding: 12px 24px; color: #9d9d9d; font-size: 0.8rem; cursor: pointer;
+            border-bottom: 2px solid transparent; transition: all 0.2s;
+        }
+        .ide-tab:hover { color: #e0e0e0; background: rgba(255,255,255,0.05); }
+        .ide-tab.active { color: #fff; background: #1e1e1e; border-bottom-color: #6d28d9; }
+
+        .code-wrapper-ide {
+            flex: 1; display: flex; font-family: 'Fira Code', monospace;
+            font-size: 0.9rem; line-height: 1.6; background: #1e1e1e; overflow: hidden;
+        }
+
+        .line-numbers-ide {
+            background: #1e1e1e; color: #6e7681; text-align: right;
+            padding: 20px 16px; user-select: none; border-right: 1px solid #333; min-width: 50px;
+            overflow-y: auto; font-size: 0.85rem; line-height: 1.5;
+        }
+
+        /* Syntax Highlighting */
+        .ide-keyword { color: #c586c0; font-weight: 500; }
+        .ide-function { color: #dcdcaa; font-weight: 500; }
+        .ide-string { color: #ce9178; }
+        .ide-number { color: #b5cea8; }
+        .ide-comment { color: #6a9955; font-style: italic; }
+        .ide-tag { color: #569cd6; }
+        .ide-attribute { color: #9cdcfe; }
+        .ide-value { color: #ce9178; }
+        .ide-selector { color: #d7ba7d; }
+        .ide-property { color: #9cdcfe; }
+        .ide-punctuation { color: #808080; }
+        .ide-operator { color: #d4d4d4; }
+        .ide-builtin { color: #4ec9b0; }
+        .ide-constant { color: #4fc1ff; }
+
+        .code-content-ide {
+            flex: 1; 
+            padding: 20px; 
+            overflow: auto; 
+            color: #d4d4d4; 
+            white-space: pre;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            tab-size: 2;
+        }
+
+        /* Scrollbar */
+        .code-content-ide::-webkit-scrollbar { width: 10px; height: 10px; }
+        .code-content-ide::-webkit-scrollbar-track { background: #1e1e1e; }
+        .code-content-ide::-webkit-scrollbar-thumb { background: #424242; border-radius: 5px; border: 2px solid #1e1e1e; }
+        .code-content-ide::-webkit-scrollbar-thumb:hover { background: #4f4f4f; }
+
+        /* Component Styles */
+        .preview-container {
+            background: white; border-radius: 12px; padding: 1.5rem;
+            border: 1px solid rgba(0,0,0,0.05); min-height: 140px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .dark .preview-container { background: #1e293b; border-color: rgba(255,255,255,0.05); }
+
+        .poppins-btn { font-family: 'Poppins', sans-serif; padding: 16px 36px; font-size: 13px; font-weight: 500; border-radius: 12px; border: 1px solid #ddd6fe; background: #f5f3ff; color: #6d28d9; cursor: pointer; position: relative; overflow: hidden; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(109, 40, 217, 0.05); }
+        .poppins-btn:hover { background: #ede9fe; border-color: #c4b5fd; transform: translateY(-2px); }
+        .poppins-btn.copied { border: 1px solid #86efac; border-radius: 8px; }
+        .copy-text, .copied-text { display: flex; align-items: center; justify-content: center; transition: all 0.4s cubic-bezier(0.68, -0.55, 0.27, 1.55); width: 100%; height: 100%; position: absolute; top: 0; left: 0; }
+        .copy-text { opacity: 1; transform: translateY(0); }
+        .copied-text { background: #dcfce7; color: #16a34a; opacity: 0; transform: translateY(100%); border-radius: 8px; }
+
+        .poppins-toggle { position: relative; width: 54px; height: 28px; background: #e0e7ff; border-radius: 50px; cursor: pointer; border: 1px solid #c4b5fd; transition: 0.3s; }
+        .poppins-toggle::after { content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: white; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: 0.3s cubic-bezier(0.68,-0.55,0.27,1.55); }
+        .poppins-toggle.active { background: #22c55e; border-color: #22c55e; }
+        .poppins-toggle.active::after { transform: translateX(26px); }
+
+        .poppins-input { width: 100%; padding: 12px 16px; border-radius: 12px; border: 1px solid #ddd6fe; background: #fff; font-family: 'Poppins', sans-serif; color: #333; transition: all 0.3s; box-shadow: 0 2px 5px rgba(0,0,0,0.02); }
+        .poppins-input:focus { outline: none; border-color: #c4b5fd; box-shadow: 0 0 0 4px rgba(196, 181, 253, 0.2); }
+
+        .poppins-badge { padding: 8px 20px; background: #6d28d9; color: white; border-radius: 30px; font-size: 0.9rem; font-weight: 600; box-shadow: 0 4px 12px rgba(109, 40, 217, 0.25); font-family: 'Poppins', sans-serif; }
+        .poppins-alert { width: 100%; background: #fff1f2; border: 1px solid #fecdd3; color: #be123c; padding: 12px 16px; border-radius: 10px; font-size: 0.9rem; display: flex; align-items: center; gap: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.02); }
+
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(139, 92, 246, 0.2); border-radius: 10px; transition: background 0.3s ease; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(139, 92, 246, 0.4); }
+        
+        html { scroll-behavior: smooth; }
+        * { scroll-behavior: smooth; }
+    </style>
+</head>
+
+<body class="antialiased selection:bg-violet-500 selection:text-white transition-colors duration-500 overflow-x-hidden">
+
+    <!-- Loader Overlay -->
+    <div id="loadingPopup"
+        class="fixed inset-0 z-[100] bg-white/40 backdrop-blur-sm flex flex-col items-center justify-center transition-opacity duration-500">
+        <div class="loader"></div>
+        <p class="text-gray-700 font-medium mt-4 text-xs tracking-wide uppercase">Loading Components</p>
+    </div>
+
+    <!-- Background Lights -->
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="ambient-light light-1 animate-float-slow"></div>
+        <div class="ambient-light light-2 animate-float-slow" style="animation-delay: -4s;"></div>
+    </div>
+
+    <!-- Header -->
+    <header class="fixed top-0 w-full z-40 glass transition-all duration-300 border-b-0 h-16 shadow-[0_8px_30px_rgba(0,0,0,0.06)] dark:shadow-[0_8px_30px_rgba(0,0,0,0.35)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center justify-between gap-4">
+            <!-- Logo -->
+            <div class="flex items-center gap-2.5 cursor-pointer group shrink-0">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-indigo-600 text-white flex items-center justify-center shadow-md group-hover:shadow-violet-500/30 transition-all duration-300">
+                    <i class="fa-solid fa-layer-group text-sm"></i>
+                </div>
+                <div class="hidden sm:block">
+                    <h1 class="text-lg font-bold tracking-tight text-stone-900 dark:text-white leading-none">
+                        Essential<span class="font-light text-violet-600 dark:text-violet-400">UI</span></h1>
+                    <p class="text-[10px] text-violet-500 dark:text-violet-400 font-mono">Powered by Google Sheets</p>
+                </div>
+            </div>
+
+            <!-- Center Search Bar -->
+            <div class="flex-1 flex justify-center">
+                <div class="relative w-full max-w-[200px] lg:max-w-xs group">
+                    <div class="relative rounded-full overflow-hidden animate-border-glow transition-all duration-300 h-9">
+                        <div class="absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-transparent animate-gradient-flow opacity-20"></div>
+                        <div class="absolute inset-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm"></div>
+                        <div class="relative z-10 flex items-center px-2.5 h-full">
+                            <i class="fa-solid fa-search text-gray-400 dark:text-gray-500 text-xs animate-icon-glow mr-2"></i>
+                            <input type="text" id="searchInput" class="w-full bg-transparent text-gray-800 dark:text-white placeholder-gray-500 border-none focus:outline-none focus:ring-0 text-sm transition-all duration-300 h-full" placeholder="Search components...">
+                            <button id="clearSearch" class="hidden text-gray-400 hover:text-red-400 transition-colors">
+                                <i class="fa-solid fa-times-circle text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Controls -->
+            <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+                <!-- Filter Dropdown -->
+                <div class="relative z-50 shrink-0" id="dropdownWrapper">
+                    <div class="flex items-center gap-2">
+                        <button onclick="toggleDropdown()" class="flex items-center dark:bg-[#2a3444] bg-violet-50 gap-3 px-4 py-1.5 rounded-full glass hover:bg-white/80 dark:hover:bg-slate-700/50 transition-all duration-300 text-stone-700 dark:text-stone-200 text-xs font-semibold shadow-sm hover:shadow-md hover:scale-105">
+                            <span id="currentFilter" class="truncate max-w-[80px]">All</span>
+                            <i class="fa-solid fa-chevron-down text-[10px] opacity-60 transition-transform duration-300" id="chevron"></i>
+                        </button>
+                        <div class="bg-violet-100 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 px-3 py-1.5 rounded-full text-xs font-semibold border border-violet-200 dark:border-violet-800/50">
+                            <span id="totalCards">0</span>
+                        </div>
+                    </div>
+                    <div id="dropdownMenu" class="absolute right-0 mt-2 w-56 glass-dropdown-menu rounded-xl overflow-hidden hidden dropdown-hidden">
+                        <div class="py-1 max-h-64 overflow-y-auto">
+                            <button onclick="setFilter('')" class="w-full text-left px-4 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-300 transition-colors">All</button>
+                            <button onclick="setFilter('Interactive')" class="w-full text-left px-4 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-300 transition-colors">Interactive</button>
+                            <button onclick="setFilter('Form')" class="w-full text-left px-4 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-300 transition-colors">Form</button>
+                            <button onclick="setFilter('Typography')" class="w-full text-left px-4 py-2 text-xs font-medium text-stone-600 dark:text-stone-300 hover:bg-violet-50 dark:hover:bg-violet-900/20 hover:text-violet-600 dark:hover:text-violet-300 transition-colors">Typography</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-4 w-px bg-stone-300 dark:bg-slate-700 mx-1 shrink-0"></div>
+
+                <button onclick="toggleTheme()" class="w-8 h-8 bg-violet-50 dark:bg-[#2a3444] rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors shrink-0">
+                    <i class="fa-regular fa-sun text-xs dark:hidden"></i>
+                    <i class="fa-regular fa-moon text-xs hidden dark:block"></i>
+                </button>
+
+                <button onclick="refreshData()" class="w-8 h-8 bg-violet-50 dark:bg-[#2a3444] rounded-full flex items-center justify-center text-stone-500 dark:text-slate-400 hover:bg-stone-200 dark:hover:bg-slate-700/50 transition-colors shrink-0">
+                    <i class="fa-solid fa-rotate-right text-[10px] transition-transform duration-500" id="refreshIcon"></i>
+                </button>
+
+                <button onclick="openAddModal()" class="bg-stone-900 dark:bg-[#2a3444] text-white dark:text-white-900 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-1.5 shrink-0">
+                    <i class="fa-solid fa-plus text-[10px]"></i> <span class="hidden sm:inline">Add</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-10 min-h-screen">
+        <div id="gridContainer" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        <div id="emptyState" class="hidden flex flex-col items-center justify-center pt-20 text-center">
+            <div class="w-20 h-20 rounded-full bg-violet-50 dark:bg-slate-800 flex items-center justify-center mb-4 shadow-lg">
+                <i class="fa-solid fa-layer-group text-3xl text-violet-300 dark:text-slate-600"></i>
+            </div>
+            <h3 class="text-xl font-bold text-stone-900 dark:text-white mb-2">No components found</h3>
+            <p class="text-stone-500 dark:text-slate-400 text-sm">Try adjusting your search or filter.</p>
+        </div>
+        
+        <!-- Data Source Info -->
+        <div class="mt-8 text-center text-xs text-stone-500 dark:text-slate-400">
+            <p>Components are loaded from Google Sheets in real-time</p>
+            <p class="mt-1" id="lastUpdated"></p>
+        </div>
+    </main>
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- ADD COMPONENT MODAL -->
+    <div id="addModal" class="fixed inset-0 z-[60] hidden">
+        <div class="absolute inset-0 bg-stone-900/40 dark:bg-black/60 backdrop-blur-sm transition-opacity opacity-0" id="addModalBackdrop"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="glass bg-white w-full max-w-lg rounded-2xl shadow-2xl transform scale-95 opacity-0 transition-all duration-300 overflow-hidden flex flex-col max-h-[90vh]" id="addModalContent">
+                <div class="p-6 flex-shrink-0">
+                    <div class="flex justify-between items-center mb-6">
+                        <h2 class="text-lg font-bold text-stone-900 dark:text-white">Add New Component</h2>
+                        <button onclick="closeAddModal()" class="text-stone-400 hover:text-stone-600 dark:hover:text-white transition-colors w-6 h-6 flex items-center justify-center rounded-full hover:bg-stone-100 dark:hover:bg-slate-700"><i class="fa-solid fa-xmark text-sm"></i></button>
+                    </div>
+                    <form id="addForm" class="space-y-4">
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">Title</label>
+                            <input type="text" id="addTitle" required class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-sm text-stone-900 dark:text-white">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">Group</label>
+                            <div class="relative">
+                                <select id="addGroup" class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-sm text-stone-900 dark:text-white appearance-none cursor-pointer">
+                                    <option value="Interactive">Interactive</option>
+                                    <option value="Form">Form</option>
+                                    <option value="Typography">Typography</option>
+                                </select>
+                                <i class="fa-solid fa-chevron-down absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-stone-400 pointer-events-none"></i>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">Prompt (AI)</label>
+                            <input type="text" id="addPrompt" class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-sm text-stone-900 dark:text-white" placeholder="e.g. Create a neon glowing button...">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">Tags</label>
+                            <input type="text" id="addTags" class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-sm text-stone-900 dark:text-white" placeholder="css, button">
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">HTML</label>
+                            <textarea id="addHtml" rows="3" class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-xs font-mono text-stone-900 dark:text-white"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">CSS</label>
+                            <textarea id="addCss" rows="3" class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-xs font-mono text-stone-900 dark:text-white"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-1.5">JS</label>
+                            <textarea id="addJs" rows="2" class="w-full px-3 py-2 rounded-lg bg-white/50 dark:bg-slate-800/50 border border-stone-200 dark:border-slate-700 focus:bg-white dark:focus:bg-slate-800 focus:ring-2 focus:ring-violet-500/20 outline-none transition-all text-xs font-mono text-stone-900 dark:text-white"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="p-5 border-t border-stone-100/50 dark:border-slate-700/50 flex gap-2 flex-shrink-0 bg-white/50 dark:bg-slate-900/30">
+                    <button type="button" onclick="closeAddModal()" class="flex-1 py-2 rounded-lg font-medium text-stone-500 hover:bg-stone-100 dark:hover:bg-slate-700 transition-colors text-xs">Cancel</button>
+                    <button type="button" onclick="saveNewComponent()" class="flex-1 py-2 rounded-lg bg-violet-600 hover:bg-violet-700 text-white font-bold shadow-lg hover:shadow-violet-500/30 transform active:scale-95 transition-all text-xs">Save Component</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- IDE MODAL -->
+    <div id="codeModal" class="ide-modal-overlay">
+        <div class="ide-window">
+            <!-- Header -->
+            <div class="ide-header">
+                <div class="ide-header-left">
+                    <div class="mac-dots">
+                        <div class="dot red"></div>
+                        <div class="dot yellow"></div>
+                        <div class="dot green"></div>
+                    </div>
+                    <div class="ide-title" id="modalFileName">index.html</div>
+                </div>
+                <div class="modal-actions">
+                    <button class="modal-action-btn" onclick="copyModalCode()">Copy</button>
+                    <button class="modal-action-btn" onclick="closeCodeModal()">×</button>
+                </div>
+            </div>
+            
+            <!-- Tabs -->
+            <div class="ide-tabs">
+                <div class="ide-tab active" onclick="switchTab('html', this)">HTML</div>
+                <div class="ide-tab" onclick="switchTab('css', this)">CSS</div>
+                <div class="ide-tab" onclick="switchTab('js', this)">JS</div>
+            </div>
+
+            <!-- Code Body -->
+            <div class="code-wrapper-ide">
+                <div class="line-numbers-ide" id="ideLineNumbers"></div>
+                <div class="code-content-ide" id="ideCodeContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // =============== CONFIGURATION ===============
+        // Replace this with your Google Apps Script Web App URL
+        // After deploying your script, copy the URL here
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxi7Xi3ZSRiGlXNyKxPEOOhIZAHkF3Mhl7Y97YKjfg_nPbeo9qQHzhDPziU7z-9oCot/exec';
+        // ============================================
+
+        // Data store
+        let components = {};
+        let currentComponentId = '';
+        let currentTab = 'html';
+        let currentFilter = '';
+        const gridContainer = document.getElementById('gridContainer');
+        const emptyState = document.getElementById('emptyState');
+        const lastUpdatedEl = document.getElementById('lastUpdated');
+
+        // =============== GOOGLE SHEETS API FUNCTIONS ===============
+        async function fetchComponentsFromGoogleSheets() {
+            try {
+                showLoader();
+                
+                // Add timestamp to avoid caching
+                const url = `${API_URL}?action=getComponents&t=${Date.now()}`;
+                
+                const response = await fetch(url);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                components = data.components || {};
+                
+                // Update last updated time
+                if (data.lastUpdated) {
+                    const date = new Date(data.lastUpdated);
+                    lastUpdatedEl.textContent = `Last updated: ${date.toLocaleString()}`;
+                }
+                
+                // Update total count
+                document.getElementById('totalCards').textContent = data.total || 0;
+                
+                return data;
+            } catch (error) {
+                console.error('Error fetching from Google Sheets:', error);
+                showToast('Failed to load components. Using fallback data.', 'error');
+                
+                // Fallback to local data
+                components = getFallbackComponents();
+                document.getElementById('totalCards').textContent = Object.keys(components).length;
+                lastUpdatedEl.textContent = 'Using fallback data';
+                
+                return { components: components, total: Object.keys(components).length };
+            } finally {
+                hideLoader();
+            }
+        }
+
+        async function saveComponentToGoogleSheets(componentData) {
+            try {
+                const params = new URLSearchParams({
+                    action: 'addComponent',
+                    ...componentData
+                });
+                
+                const url = `${API_URL}?${params.toString()}`;
+                
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.success) {
+                    return { success: true, id: data.id };
+                } else {
+                    throw new Error(data.error || 'Failed to save component');
+                }
+            } catch (error) {
+                console.error('Error saving to Google Sheets:', error);
+                throw error;
+            }
+        }
+
+        // Fallback components in case API fails
+        function getFallbackComponents() {
+            return {
+                btn: {
+                    title: "Neon Glow Button",
+                    category: "Interactive",
+                    prompt: "Create a neon glowing button with a hover effect using CSS box-shadow and smooth transitions.",
+                    tags: ["button", "neon", "glow"],
+                    preview: `<button class="poppins-btn" onclick="animateCopy(this)"><span class="copy-text">Copy</span><span class="copied-text">Copied</span></button>`,
+                    html: `<button class="poppins-btn" onclick="animateCopy(this)">\n  <span class="copy-text">Copy</span>\n  <span class="copied-text">copied</span>\n</button>`,
+                    css: `.poppins-btn {\n  font-family: 'Poppins', sans-serif;\n  padding: 10px 20px;\n  font-size: 13px;\n  font-weight: 500;\n  border-radius: 12px;\n  border: 1px solid #ddd6fe;\n  background: #f5f3ff;\n  color: #6d28d9;\n  cursor: pointer;\n  position: relative;\n  overflow: hidden;\n  transition: all 0.3s ease;\n  box-shadow: 0 4px 6px rgba(109, 40, 217, 0.05);\n}\n\n.poppins-btn:hover {\n  background: #ede9fe;\n  border-color: #c4b5fd;\n  transform: translateY(-2px);\n}`,
+                    js: `function animateCopy(btn) {\n  const copyEl = btn.querySelector('.copy-text');\n  const copiedEl = btn.querySelector('.copied-text');\n  \n  copyEl.style.opacity = '0';\n  copyEl.style.transform = 'translateY(-100%)';\n  copiedEl.style.opacity = '1';\n  copiedEl.style.transform = 'translateY(0)';\n  \n  setTimeout(() => {\n    copyEl.style.opacity = '1';\n    copyEl.style.transform = 'translateY(0)';\n    copiedEl.style.opacity = '0';\n    copiedEl.style.transform = 'translateY(100%)';\n  }, 1500);\n}`
+                },
+                input: {
+                    title: "Floating Input",
+                    category: "Form",
+                    prompt: "Design a modern input field with a focus state that expands the border and shows a soft shadow.",
+                    tags: ["input", "form", "focus"],
+                    preview: `<input type="text" class="poppins-input" placeholder="Type something...">`,
+                    html: `<input type="text" class="poppins-input" placeholder="Type something...">`,
+                    css: `.poppins-input {\n  width: 100%;\n  padding: 12px 16px;\n  border-radius: 12px;\n  border: 1px solid #ddd6fe;\n  background: #fff;\n  font-family: 'Poppins', sans-serif;\n  color: #333;\n  transition: all 0.3s;\n  box-shadow: 0 2px 5px rgba(0,0,0,0.02);\n}\n\n.poppins-input:focus {\n  outline: none;\n  border-color: #c4b5fd;\n  box-shadow: 0 0 0 4px rgba(196, 181, 253, 0.2);\n}`,
+                    js: `// No JS needed for CSS focus state`
+                }
+            };
+        }
+
+        // =============== RENDER FUNCTIONS ===============
+        function renderGrid() {
+            const q = document.getElementById('searchInput').value.toLowerCase();
+
+            const filtered = Object.keys(components).filter(key => {
+                const comp = components[key];
+                if (!comp) return false;
+                
+                const tagsString = comp.tags ? comp.tags.join(' ') : '';
+                const matchSearch = comp.title.toLowerCase().includes(q) || 
+                                   comp.category.toLowerCase().includes(q) || 
+                                   tagsString.includes(q) || 
+                                   comp.prompt.toLowerCase().includes(q);
+                const matchFilter = currentFilter === '' || comp.category === currentFilter;
+                return matchSearch && matchFilter;
+            });
+
+            // Fade out existing cards
+            const existingCards = gridContainer.querySelectorAll('.glass-card');
+            existingCards.forEach((card, index) => {
+                setTimeout(() => {
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(20px) scale(0.95)';
+                }, index * 30);
+            });
+
+            // Clear and rebuild after fade out
+            setTimeout(() => {
+                gridContainer.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    emptyState.style.opacity = '0';
+                    emptyState.style.transform = 'translateY(20px)';
+                    setTimeout(() => {
+                        emptyState.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+                        emptyState.style.opacity = '1';
+                        emptyState.style.transform = 'translateY(0)';
+                    }, 50);
+                    return;
+                } else {
+                    emptyState.classList.add('hidden');
+                }
+
+                // Update total cards count
+                document.getElementById('totalCards').textContent = filtered.length;
+
+                // Add new cards with staggered animation
+                filtered.forEach((key, index) => {
+                    const comp = components[key];
+                    if (!comp) return;
+                    
+                    const card = document.createElement('div');
+                    card.className = 'glass-card rounded-3xl p-0 relative group h-full flex flex-col';
+                    
+                    // Initial hidden state
+                    card.style.opacity = '0';
+                    card.style.transform = 'translateY(30px) scale(0.9)';
+                    card.style.transition = 'all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+                    const tags = comp.tags || [];
+                    const tagsHtml = tags.map(tag => 
+                        `<span class="text-[10px] font-medium px-2 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-300 border border-violet-100 dark:border-violet-800/50">${tag.trim()}</span>`
+                    ).join('');
+
+                    card.innerHTML = `
+                        <div class="p-6 flex-1 flex flex-col">
+                            <div class="preview-container mb-6 relative">
+                                ${comp.preview || comp.html || ''}
+                            </div>
+                            <h3 class="text-lg font-bold text-stone-900 dark:text-white mb-2">${comp.title}</h3>
+                            <div class="text-xs text-stone-500 dark:text-slate-400 italic font-mono leading-relaxed bg-stone-50 dark:bg-slate-800/50 p-3 rounded-lg border border-stone-100 dark:border-slate-700/50 mb-4 relative group">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-2 text-violet-400"></i> ${comp.prompt || 'No prompt available'}
+                                <button onclick="copyPrompt('${(comp.prompt || '').replace(/'/g, "\\'")}')" class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-violet-500 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 p-1.5 rounded hover:bg-violet-100 dark:hover:bg-violet-900/30">
+                                    <i class="fa-solid fa-copy text-xs"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="p-4 border-t border-stone-100/50 dark:border-slate-700/50 flex justify-between items-center gap-4 backdrop-blur-md bg-white/30 dark:bg-slate-800/20 rounded-b-3xl">
+                            <div class="flex flex-wrap gap-2 max-w-[60%]">
+                                ${tagsHtml}
+                            </div>
+                            <button onclick="window.openCodeModal('${key}')" class="bg-stone-900 dark:bg-white text-white dark:text-stone-900 px-3 py-1.5 rounded-lg text-[10px] font-bold shadow-lg hover:shadow-violet-500/30 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-1.5 shrink-0">
+                                <i class="fa-solid fa-code"></i> View Code
+                            </button>
+                        </div>
+                    `;
+                    
+                    gridContainer.appendChild(card);
+
+                    // Animate in with stagger
+                    setTimeout(() => {
+                        card.style.opacity = '1';
+                        card.style.transform = 'translateY(0) scale(1)';
+                    }, 100 + (index * 100));
+                });
+            }, existingCards.length > 0 ? 300 : 0);
+        }
+
+        // =============== IDE MODAL FUNCTIONS ===============
+        const codeModal = document.getElementById('codeModal');
+        const codeContent = document.getElementById('ideCodeContent');
+        const lineNumbers = document.getElementById('ideLineNumbers');
+        const modalTitle = document.getElementById('modalFileName');
+
+        window.openCodeModal = function(id) {
+            currentComponentId = id;
+            const data = components[id];
+            if(!data) return;
+            
+            modalTitle.innerText = 'index.html';
+            document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.ide-tab').classList.add('active');
+            currentTab = 'html';
+            
+            renderIdeCode(data.html || '');
+            
+            codeModal.classList.add('open');
+            document.body.style.overflow = 'hidden';
+        };
+
+        window.closeCodeModal = function() {
+            codeModal.classList.remove('open');
+            document.body.style.overflow = '';
+        };
+
+        window.switchTab = function(type, el) {
+            currentTab = type;
+            document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            
+            let fileName = 'index.html';
+            if (type === 'css') fileName = 'style.css';
+            if (type === 'js') fileName = 'script.js';
+            
+            modalTitle.innerText = fileName;
+            
+            const code = components[currentComponentId][type] || `// No ${type.toUpperCase()} code for this component`;
+            renderIdeCode(code);
+            codeContent.scrollTop = 0;
+        };
+
+        function escapeHtml(text) {
+            return text
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderIdeCode(rawCode) {
+            const lines = rawCode.split('\n');
+            let numsHTML = '';
+            for(let i = 1; i <= lines.length; i++) { 
+                numsHTML += `<div class="text-right pr-2">${i}</div>`;
+            }
+            lineNumbers.innerHTML = numsHTML;
+            
+            let highlightedCode = '';
+            if (currentTab === 'html') highlightedCode = highlightHTML(rawCode);
+            else if (currentTab === 'css') highlightedCode = highlightCSS(rawCode);
+            else if (currentTab === 'js') highlightedCode = highlightJS(rawCode);
+            else highlightedCode = escapeHtml(rawCode);
+            
+            codeContent.innerHTML = highlightedCode.replace(/\n/g, '<br>');
+        }
+
+        // Syntax highlighting functions (same as before)
+        function highlightJS(code) {
+            let c = escapeHtml(code);
+            const strings = [];
+            c = c.replace(/(['"`])(.*?)\1/g, function(match) {
+                strings.push('<span class="ide-string">' + match + '</span>');
+                return '___STRING' + (strings.length - 1) + '___';
+            });
+            const comments = [];
+            c = c.replace(/(\/\/.*)/g, function(match) {
+                comments.push('<span class="ide-comment">' + match + '</span>');
+                return '___COMMENT' + (comments.length - 1) + '___';
+            });
+            const keywords = /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|typeof|instanceof|in|of|this|class|extends|super|import|export|default|async|await|true|false|null|undefined)\b/g;
+            c = c.replace(keywords, '<span class="ide-keyword">$1</span>');
+            const builtins = /\b(console|document|window|navigator|setTimeout|setInterval|clearTimeout|clearInterval|Math|Date|Array|Object|String|Number|Boolean|RegExp|Promise|fetch|localStorage|sessionStorage|JSON)\b/g;
+            c = c.replace(builtins, '<span class="ide-builtin">$1</span>');
+            c = c.replace(/\b(\d+\.?\d*)\b/g, '<span class="ide-number">$1</span>');
+            c = c.replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)(?=\s*\()/g, function(match, funcName) {
+                if(funcName.match(/const|let|var|if|else|for|while|function|return|new|this/)) return match;
+                return '<span class="ide-function">' + funcName + '</span>';
+            });
+            c = c.replace(/___COMMENT(\d+)___/g, function(match, id) { return comments[id]; });
+            c = c.replace(/___STRING(\d+)___/g, function(match, id) { return strings[id]; });
+            return c;
+        }
+
+        function highlightCSS(code) {
+            let c = escapeHtml(code);
+            c = c.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="ide-comment">$1</span>');
+            c = c.replace(/([^{]+)(?={)/g, function(match) {
+                return match.replace(/^(\s*)([\w\-\.\#\[\]\:\,\s]+)$/gm, '$1<span class="ide-selector">$2</span>');
+            });
+            c = c.replace(/([\w\-]+)(\s*:)/g, '<span class="ide-property">$1</span>$2');
+            c = c.replace(/(:)([^;}]+)([;}])/g, '$1<span class="ide-value">$2</span>$3');
+            c = c.replace(/\b(var|calc|rgba?|hsla?|url|linear-gradient|radial-gradient)\(/g, '<span class="ide-function">$1</span>(');
+            c = c.replace(/\b(\d+\.?\d*)(px|em|rem|%|vh|vw|s|ms|deg|fr)?\b/g, '<span class="ide-number">$1$2</span>');
+            c = c.replace(/(#[a-fA-F0-9]{3,6})\b/g, '<span class="ide-number">$1</span>');
+            c = c.replace(/(!important)/g, '<span class="ide-keyword">$1</span>');
+            return c;
+        }
+
+        function highlightHTML(code) {
+            let c = escapeHtml(code);
+            c = c.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="ide-comment">$1</span>');
+            c = c.replace(/(&lt;\/?)([\w\-]+)/g, '$1<span class="ide-tag">$2</span>');
+            c = c.replace(/(\s)([\w\-:]+)(=)/g, '$1<span class="ide-attribute">$2</span>$3');
+            c = c.replace(/(=)(&quot;.*?&quot;|&#039;.*?&#039;)/g, '$1<span class="ide-string">$2</span>');
+            return c;
+        }
+
+        window.copyModalCode = function() {
+            const code = components[currentComponentId][currentTab];
+            navigator.clipboard.writeText(code).then(() => {
+                showToast('Code copied to clipboard', 'success');
+            });
+        };
+
+        window.copyPrompt = function(prompt) {
+            navigator.clipboard.writeText(prompt).then(() => {
+                showToast('Prompt copied to clipboard', 'success');
+            });
+        };
+
+        // =============== ADD COMPONENT MODAL ===============
+        window.openAddModal = function() {
+            document.getElementById('addForm').reset();
+            const m = document.getElementById('addModal');
+            const mb = document.getElementById('addModalBackdrop');
+            const mc = document.getElementById('addModalContent');
+            m.classList.remove('hidden');
+            setTimeout(() => { mb.classList.remove('opacity-0'); mc.classList.remove('scale-95','opacity-0'); mc.classList.add('scale-100','opacity-100'); }, 10);
+        };
+        
+        window.closeAddModal = function() {
+            const m = document.getElementById('addModal');
+            const mb = document.getElementById('addModalBackdrop');
+            const mc = document.getElementById('addModalContent');
+            mb.classList.add('opacity-0'); mc.classList.remove('scale-100','opacity-100'); mc.classList.add('scale-95','opacity-0');
+            setTimeout(() => { m.classList.add('hidden'); }, 300);
+        };
+        
+        window.saveNewComponent = async function() {
+            const title = document.getElementById('addTitle').value;
+            const group = document.getElementById('addGroup').value;
+            const prompt = document.getElementById('addPrompt').value;
+            const tagsStr = document.getElementById('addTags').value;
+            const html = document.getElementById('addHtml').value;
+            const css = document.getElementById('addCss').value;
+            const js = document.getElementById('addJs').value;
+
+            if(!title || !html) { 
+                showToast('Title and HTML are required', 'error'); 
+                return; 
+            }
+
+            try {
+                const componentData = {
+                    title: title,
+                    category: group,
+                    prompt: prompt,
+                    tags: tagsStr,
+                    html: html,
+                    css: css,
+                    js: js
+                };
+
+                const result = await saveComponentToGoogleSheets(componentData);
+                
+                if (result.success) {
+                    // Add to local state
+                    const id = result.id;
+                    components[id] = { 
+                        title, 
+                        category: group, 
+                        prompt, 
+                        tags: tagsStr ? tagsStr.split(',').map(t=>t.trim()) : [], 
+                        preview: html, 
+                        html, 
+                        css, 
+                        js 
+                    };
+                    
+                    closeAddModal();
+                    renderGrid();
+                    showToast('Component added successfully to Google Sheets', 'success');
+                    
+                    // Refresh data to get latest from sheet
+                    setTimeout(() => refreshData(), 1000);
+                }
+            } catch (error) {
+                showToast('Failed to save to Google Sheets: ' + error.message, 'error');
+            }
+        };
+
+        // =============== UTILITY FUNCTIONS ===============
+        window.toggleSwitch = function(el) { el.classList.toggle('active'); };
+        window.animateCopy = function(btn) {
+            const copyEl = btn.querySelector('.copy-text');
+            const copiedEl = btn.querySelector('.copied-text');
+            btn.classList.add('copied');
+            copyEl.style.opacity = '0'; copyEl.style.transform = 'translateY(-100%)';
+            copiedEl.style.opacity = '1'; copiedEl.style.transform = 'translateY(0)';
+            setTimeout(() => {
+                copyEl.style.opacity = '1'; copyEl.style.transform = 'translateY(0)';
+                copiedEl.style.opacity = '0'; copiedEl.style.transform = 'translateY(100%)';
+                btn.classList.remove('copied');
+            }, 1500);
+        };
+
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            let colors = type === 'success' ? 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-emerald-500' : 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-violet-500';
+            let icon = type === 'success' ? '<i class="fa-solid fa-check-circle text-emerald-500"></i>' : '<i class="fa-solid fa-circle-info text-violet-500"></i>';
+            toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-sm transform transition-all duration-300 ${colors}`;
+            toast.style.animation = 'slideUp 0.3s ease-out forwards';
+            toast.innerHTML = `${icon} <span class="text-xs font-medium text-stone-800 dark:text-white">${message}</span>`;
+            toastContainer.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0'; toast.style.transform = 'translateY(-10px)';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+
+        window.toggleDropdown = function() {
+            const menu = document.getElementById('dropdownMenu');
+            const chevron = document.getElementById('chevron');
+            const isHidden = menu.classList.contains('hidden');
+            if (isHidden) {
+                menu.classList.remove('hidden');
+                setTimeout(() => { menu.classList.remove('dropdown-hidden'); menu.classList.add('dropdown-visible'); chevron.style.transform = 'rotate(180deg)'; }, 10);
+            } else {
+                menu.classList.remove('dropdown-visible'); menu.classList.add('dropdown-hidden');
+                chevron.style.transform = 'rotate(0deg)';
+                setTimeout(() => { if(menu.classList.contains('dropdown-hidden')) menu.classList.add('hidden'); }, 200);
+            }
+        };
+
+        window.setFilter = function(val) {
+            currentFilter = val;
+            document.getElementById('currentFilter').textContent = val === '' ? 'All' : val;
+            window.toggleDropdown();
+            renderGrid();
+        };
+
+        window.toggleTheme = function() { document.documentElement.classList.toggle('dark'); };
+        
+        window.refreshData = async function() {
+            const icon = document.getElementById('refreshIcon');
+            icon.classList.add('animate-spin');
+            showLoader();
+            
+            try {
+                await fetchComponentsFromGoogleSheets();
+                renderGrid();
+                showToast('Components refreshed from Google Sheets', 'success');
+            } catch (error) {
+                showToast('Refresh failed: ' + error.message, 'error');
+            } finally {
+                icon.classList.remove('animate-spin');
+            }
+        };
+
+        // =============== EVENT LISTENERS ===============
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        
+        searchInput.addEventListener('input', function() {
+            renderGrid();
+            if (searchInput.value.trim() !== '') {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+        });
+        
+        clearSearchBtn.addEventListener('click', function() {
+            searchInput.value = '';
+            clearSearchBtn.classList.add('hidden');
+            searchInput.focus();
+            renderGrid();
+        });
+        
+        document.addEventListener('click', function(event) {
+            const dropdownWrapper = document.getElementById('dropdownWrapper');
+            const dropdownMenu = document.getElementById('dropdownMenu');
+            
+            if (!dropdownWrapper.contains(event.target) && !dropdownMenu.classList.contains('hidden')) {
+                const chevron = document.getElementById('chevron');
+                dropdownMenu.classList.remove('dropdown-visible');
+                dropdownMenu.classList.add('dropdown-hidden');
+                chevron.style.transform = 'rotate(0deg)';
+                setTimeout(() => {
+                    if (dropdownMenu.classList.contains('dropdown-hidden')) {
+                        dropdownMenu.classList.add('hidden');
+                    }
+                }, 200);
+            }
+        });
+
+        // =============== LOADER FUNCTIONS ===============
+        function showLoader() {
+            const loadingPopup = document.getElementById('loadingPopup');
+            loadingPopup.classList.remove('pointer-events-none', 'opacity-0');
+            loadingPopup.style.display = 'flex';
+        }
+
+        function hideLoader() {
+            const loadingPopup = document.getElementById('loadingPopup');
+            loadingPopup.classList.add('opacity-0');
+            setTimeout(() => {
+                loadingPopup.style.display = 'none';
+                loadingPopup.classList.add('pointer-events-none');
+            }, 500);
+        }
+
+        // =============== INITIALIZATION ===============
+        window.addEventListener('load', async () => { 
+            showLoader();
+            
+            try {
+                // Replace with your actual Google Apps Script URL
+                if (API_URL.includes('https://script.google.com/macros/s/AKfycbxi7Xi3ZSRiGlXNyKxPEOOhIZAHkF3Mhl7Y97YKjfg_nPbeo9qQHzhDPziU7z-9oCot/exec')) {
+                    showToast('Please update API_URL with your Google Apps Script URL', 'error');
+                }
+                
+                await fetchComponentsFromGoogleSheets();
+                renderGrid();
+            } catch (error) {
+                console.error('Initialization error:', error);
+            } finally {
+                hideLoader();
+            }
+        });
+
+    </script>
+</body>
+</html>
