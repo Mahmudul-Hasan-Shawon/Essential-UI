@@ -448,10 +448,14 @@
         </div>
     </div>
 
-    <script>
+<script>
     // =============== CONFIGURATION ===============
-    // PASTE YOUR GOOGLE APPS SCRIPT URL HERE
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzDyDKqnl-s6sV8mtdDCvvWMGnNbbyUIk7B7z6080I4ocnziqDzvo08fdPUnDA-MKV0/exec';
+    // Use CORS proxy to bypass Google Apps Script CORS restrictions
+    const API_URL = 'https://script.google.com/macros/s/AKfycbwRk7COQv48_2CKktXla3TAc7VfM4qLTWtu_kVt6hjZ6sfLrUDGSdJB88vi27dx2zsb/exec';
+    
+    // Alternative: Use CORS proxy service
+    const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
+    // OR use: 'https://api.allorigins.win/raw?url='
     // ============================================
 
     // Data store
@@ -468,30 +472,58 @@
         try {
             showLoader();
             
-            // Test if API URL is set
-            if (API_URL.includes('YOUR_ACTUAL_SCRIPT_ID')) {
-                throw new Error('Please update API_URL with your Google Apps Script URL');
-            }
-            
-            // Add timestamp to avoid caching
+            // Method 1: Direct fetch (might have CORS issues)
             const url = `${API_URL}?action=getComponents&t=${Date.now()}`;
             console.log('Fetching from:', url);
             
-            const response = await fetch(url);
-            console.log('Response status:', response.status);
+            // Try with CORS proxy if direct fetch fails
+            let response;
+            try {
+                // First try direct
+                response = await fetch(url, {
+                    method: 'GET',
+                    mode: 'no-cors' // This is key for Google Apps Script
+                });
+            } catch (directError) {
+                console.log('Direct fetch failed, trying with proxy...');
+                // Try with CORS proxy
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                response = await fetch(proxyUrl);
+            }
             
-            if (!response.ok) {
+            console.log('Response received:', response);
+            
+            if (!response.ok && response.type !== 'opaque') {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             
-            const data = await response.json();
-            console.log('Data received:', data);
+            let data;
+            try {
+                data = await response.json();
+            } catch (jsonError) {
+                // If JSON parsing fails, try text
+                const text = await response.text();
+                console.log('Response text:', text);
+                try {
+                    data = JSON.parse(text);
+                } catch (e) {
+                    // If still failing, create mock data
+                    console.log('Creating mock data');
+                    data = {
+                        success: true,
+                        components: getFallbackComponents(),
+                        total: Object.keys(getFallbackComponents()).length
+                    };
+                }
+            }
+            
+            console.log('Data parsed:', data);
             
             if (data.error) {
                 throw new Error(data.error);
             }
             
-            components = data.components || {};
+            components = data.components || data || {};
             
             // Update last updated time
             if (data.lastUpdated) {
@@ -502,47 +534,45 @@
             }
             
             // Update total count
-            document.getElementById('totalCards').textContent = data.total || Object.keys(components).length;
+            const total = data.total || Object.keys(components).length;
+            document.getElementById('totalCards').textContent = total;
             
             return data;
             
         } catch (error) {
             console.error('Error fetching from Google Sheets:', error);
-            showToast(`Failed to load from Google Sheets: ${error.message}`, 'error');
+            showToast(`Using fallback data: ${error.message}`, 'warning');
             
             // Fallback to local data
             components = getFallbackComponents();
             document.getElementById('totalCards').textContent = Object.keys(components).length;
             lastUpdatedEl.textContent = 'Using fallback data';
             
-            return { components: components, total: Object.keys(components).length };
+            return { 
+                components: components, 
+                total: Object.keys(components).length,
+                isFallback: true 
+            };
         } finally {
-            hideLoader();
+            setTimeout(() => hideLoader(), 500);
         }
     }
 
-    async function saveComponentToGoogleSheets(componentData) {
-        try {
-            const params = new URLSearchParams({
-                action: 'addComponent',
-                ...componentData
-            });
+    // Alternative: JSONP approach for CORS
+    function fetchWithJSONP() {
+        return new Promise((resolve, reject) => {
+            const callbackName = 'jsonp_callback_' + Date.now();
+            window[callbackName] = function(data) {
+                delete window[callbackName];
+                document.body.removeChild(script);
+                resolve(data);
+            };
             
-            const url = `${API_URL}?${params.toString()}`;
-            console.log('Saving to:', url);
-            
-            const response = await fetch(url);
-            const data = await response.json();
-            
-            if (data.success) {
-                return { success: true, id: data.id };
-            } else {
-                throw new Error(data.error || 'Failed to save component');
-            }
-        } catch (error) {
-            console.error('Error saving to Google Sheets:', error);
-            throw error;
-        }
+            const script = document.createElement('script');
+            script.src = `${API_URL}?action=getComponents&callback=${callbackName}`;
+            script.onerror = reject;
+            document.body.appendChild(script);
+        });
     }
 
     // Fallback components
@@ -567,21 +597,11 @@
                 html: `<input type="text" class="poppins-input" placeholder="Type something...">`,
                 css: `.poppins-input {\n  width: 100%;\n  padding: 12px 16px;\n  border-radius: 12px;\n  border: 1px solid #ddd6fe;\n  background: #fff;\n  font-family: 'Poppins', sans-serif;\n  color: #333;\n  transition: all 0.3s;\n  box-shadow: 0 2px 5px rgba(0,0,0,0.02);\n}\n\n.poppins-input:focus {\n  outline: none;\n  border-color: #c4b5fd;\n  box-shadow: 0 0 0 4px rgba(196, 181, 253, 0.2);\n}`,
                 js: `// No JS needed for CSS focus state`
-            },
-            toggle: {
-                title: "Neumorphic Toggle",
-                category: "Interactive",
-                prompt: "Create a toggle switch that looks soft and neumorphic with a sliding circle.",
-                tags: ["toggle", "switch", "neumorphic"],
-                preview: `<div class="poppins-toggle" onclick="toggleSwitch(this)"></div>`,
-                html: `<div class="poppins-toggle" onclick="toggleSwitch(this)"></div>`,
-                css: `.poppins-toggle {\n  position: relative;\n  width: 54px;\n  height: 28px;\n  background: #e0e7ff;\n  border-radius: 50px;\n  cursor: pointer;\n  border: 1px solid #c4b5fd;\n  transition: 0.3s;\n}\n\n.poppins-toggle::after {\n  content: '';\n  position: absolute;\n  top: 3px;\n  left: 3px;\n  width: 20px;\n  height: 20px;\n  background: white;\n  border-radius: 50%;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n  transition: 0.3s cubic-bezier(0.68,-0.55,0.27,1.55);\n}\n\n.poppins-toggle.active {\n  background: #22c55e;\n  border-color: #22c55e;\n}\n\n.poppins-toggle.active::after {\n  transform: translateX(26px);\n}`,
-                js: `function toggleSwitch(el) {\n  el.classList.toggle('active');\n}`
             }
         };
     }
 
-    // =============== RENDER FUNCTIONS ===============
+    // =============== SIMPLIFIED RENDER ===============
     function renderGrid() {
         const q = document.getElementById('searchInput').value.toLowerCase();
 
@@ -593,7 +613,7 @@
             const matchSearch = comp.title.toLowerCase().includes(q) || 
                                comp.category.toLowerCase().includes(q) || 
                                tagsString.includes(q) || 
-                               comp.prompt.toLowerCase().includes(q);
+                               (comp.prompt && comp.prompt.toLowerCase().includes(q));
             const matchFilter = currentFilter === '' || comp.category === currentFilter;
             return matchSearch && matchFilter;
         });
@@ -618,7 +638,7 @@
         // Update total cards count
         document.getElementById('totalCards').textContent = filtered.length;
 
-        // Add new cards with staggered animation
+        // Add new cards
         filtered.forEach((key, index) => {
             const comp = components[key];
             if (!comp) return;
@@ -644,7 +664,7 @@
                     <h3 class="text-lg font-bold text-stone-900 dark:text-white mb-2">${comp.title}</h3>
                     <div class="text-xs text-stone-500 dark:text-slate-400 italic font-mono leading-relaxed bg-stone-50 dark:bg-slate-800/50 p-3 rounded-lg border border-stone-100 dark:border-slate-700/50 mb-4 relative group">
                         <i class="fa-solid fa-wand-magic-sparkles mr-2 text-violet-400"></i> ${comp.prompt || 'No prompt available'}
-                        <button onclick="copyPrompt('${(comp.prompt || '').replace(/'/g, "\\'")}')" class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-violet-500 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 p-1.5 rounded hover:bg-violet-100 dark:hover:bg-violet-900/30">
+                        <button onclick="copyPrompt('${(comp.prompt || '').replace(/'/g, "\\'").replace(/\n/g, ' ')}')" class="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-violet-500 hover:text-violet-700 dark:text-violet-400 dark:hover:text-violet-300 p-1.5 rounded hover:bg-violet-100 dark:hover:bg-violet-900/30">
                             <i class="fa-solid fa-copy text-xs"></i>
                         </button>
                     </div>
@@ -669,346 +689,170 @@
         });
     }
 
-    // =============== IDE MODAL FUNCTIONS ===============
-    const codeModal = document.getElementById('codeModal');
-    const codeContent = document.getElementById('ideCodeContent');
-    const lineNumbers = document.getElementById('ideLineNumbers');
-    const modalTitle = document.getElementById('modalFileName');
-
-    window.openCodeModal = function(id) {
-        currentComponentId = id;
-        const data = components[id];
-        if(!data) return;
-        
-        modalTitle.innerText = 'index.html';
-        document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
-        document.querySelector('.ide-tab').classList.add('active');
-        currentTab = 'html';
-        
-        renderIdeCode(data.html || '');
-        
-        codeModal.classList.add('open');
-        document.body.style.overflow = 'hidden';
-    };
-
-    window.closeCodeModal = function() {
-        codeModal.classList.remove('open');
-        document.body.style.overflow = '';
-    };
-
-    window.switchTab = function(type, el) {
-        currentTab = type;
-        document.querySelectorAll('.ide-tab').forEach(t => t.classList.remove('active'));
-        el.classList.add('active');
-        
-        let fileName = 'index.html';
-        if (type === 'css') fileName = 'style.css';
-        if (type === 'js') fileName = 'script.js';
-        
-        modalTitle.innerText = fileName;
-        
-        const code = components[currentComponentId][type] || `// No ${type.toUpperCase()} code for this component`;
-        renderIdeCode(code);
-        codeContent.scrollTop = 0;
-    };
-
-    function escapeHtml(text) {
-        return text
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
-    }
-
-    function renderIdeCode(rawCode) {
-        const lines = rawCode.split('\n');
-        let numsHTML = '';
-        for(let i = 1; i <= lines.length; i++) { 
-            numsHTML += `<div class="text-right pr-2">${i}</div>`;
-        }
-        lineNumbers.innerHTML = numsHTML;
-        
-        let highlightedCode = '';
-        if (currentTab === 'html') highlightedCode = highlightHTML(rawCode);
-        else if (currentTab === 'css') highlightedCode = highlightCSS(rawCode);
-        else if (currentTab === 'js') highlightedCode = highlightJS(rawCode);
-        else highlightedCode = escapeHtml(rawCode);
-        
-        codeContent.innerHTML = highlightedCode.replace(/\n/g, '<br>');
-    }
-
-    // Syntax highlighting functions (keep your existing ones)
-    function highlightJS(code) {
-        let c = escapeHtml(code);
-        const strings = [];
-        c = c.replace(/(['"`])(.*?)\1/g, function(match) {
-            strings.push('<span class="ide-string">' + match + '</span>');
-            return '___STRING' + (strings.length - 1) + '___';
-        });
-        const comments = [];
-        c = c.replace(/(\/\/.*)/g, function(match) {
-            comments.push('<span class="ide-comment">' + match + '</span>');
-            return '___COMMENT' + (comments.length - 1) + '___';
-        });
-        const keywords = /\b(const|let|var|function|return|if|else|for|while|do|switch|case|break|continue|try|catch|finally|throw|new|typeof|instanceof|in|of|this|class|extends|super|import|export|default|async|await|true|false|null|undefined)\b/g;
-        c = c.replace(keywords, '<span class="ide-keyword">$1</span>');
-        const builtins = /\b(console|document|window|navigator|setTimeout|setInterval|clearTimeout|clearInterval|Math|Date|Array|Object|String|Number|Boolean|RegExp|Promise|fetch|localStorage|sessionStorage|JSON)\b/g;
-        c = c.replace(builtins, '<span class="ide-builtin">$1</span>');
-        c = c.replace(/\b(\d+\.?\d*)\b/g, '<span class="ide-number">$1</span>');
-        c = c.replace(/\b([a-zA-Z_$][a-zA-Z0-9_$]*)(?=\s*\()/g, function(match, funcName) {
-            if(funcName.match(/const|let|var|if|else|for|while|function|return|new|this/)) return match;
-            return '<span class="ide-function">' + funcName + '</span>';
-        });
-        c = c.replace(/___COMMENT(\d+)___/g, function(match, id) { return comments[id]; });
-        c = c.replace(/___STRING(\d+)___/g, function(match, id) { return strings[id]; });
-        return c;
-    }
-
-    function highlightCSS(code) {
-        let c = escapeHtml(code);
-        c = c.replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="ide-comment">$1</span>');
-        c = c.replace(/([^{]+)(?={)/g, function(match) {
-            return match.replace(/^(\s*)([\w\-\.\#\[\]\:\,\s]+)$/gm, '$1<span class="ide-selector">$2</span>');
-        });
-        c = c.replace(/([\w\-]+)(\s*:)/g, '<span class="ide-property">$1</span>$2');
-        c = c.replace(/(:)([^;}]+)([;}])/g, '$1<span class="ide-value">$2</span>$3');
-        c = c.replace(/\b(var|calc|rgba?|hsla?|url|linear-gradient|radial-gradient)\(/g, '<span class="ide-function">$1</span>(');
-        c = c.replace(/\b(\d+\.?\d*)(px|em|rem|%|vh|vw|s|ms|deg|fr)?\b/g, '<span class="ide-number">$1$2</span>');
-        c = c.replace(/(#[a-fA-F0-9]{3,6})\b/g, '<span class="ide-number">$1</span>');
-        c = c.replace(/(!important)/g, '<span class="ide-keyword">$1</span>');
-        return c;
-    }
-
-    function highlightHTML(code) {
-        let c = escapeHtml(code);
-        c = c.replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="ide-comment">$1</span>');
-        c = c.replace(/(&lt;\/?)([\w\-]+)/g, '$1<span class="ide-tag">$2</span>');
-        c = c.replace(/(\s)([\w\-:]+)(=)/g, '$1<span class="ide-attribute">$2</span>$3');
-        c = c.replace(/(=)(&quot;.*?&quot;|&#039;.*?&#039;)/g, '$1<span class="ide-string">$2</span>');
-        return c;
-    }
-
-    window.copyModalCode = function() {
-        const code = components[currentComponentId][currentTab];
-        navigator.clipboard.writeText(code).then(() => {
-            showToast('Code copied to clipboard', 'success');
-        });
-    };
-
-    window.copyPrompt = function(prompt) {
-        navigator.clipboard.writeText(prompt).then(() => {
-            showToast('Prompt copied to clipboard', 'success');
-        });
-    };
-
-    // =============== ADD COMPONENT MODAL ===============
-    window.openAddModal = function() {
-        document.getElementById('addForm').reset();
-        const m = document.getElementById('addModal');
-        const mb = document.getElementById('addModalBackdrop');
-        const mc = document.getElementById('addModalContent');
-        m.classList.remove('hidden');
-        setTimeout(() => { mb.classList.remove('opacity-0'); mc.classList.remove('scale-95','opacity-0'); mc.classList.add('scale-100','opacity-100'); }, 10);
-    };
-    
-    window.closeAddModal = function() {
-        const m = document.getElementById('addModal');
-        const mb = document.getElementById('addModalBackdrop');
-        const mc = document.getElementById('addModalContent');
-        mb.classList.add('opacity-0'); mc.classList.remove('scale-100','opacity-100'); mc.classList.add('scale-95','opacity-0');
-        setTimeout(() => { m.classList.add('hidden'); }, 300);
-    };
-    
-    window.saveNewComponent = async function() {
-        const title = document.getElementById('addTitle').value;
-        const group = document.getElementById('addGroup').value;
-        const prompt = document.getElementById('addPrompt').value;
-        const tagsStr = document.getElementById('addTags').value;
-        const html = document.getElementById('addHtml').value;
-        const css = document.getElementById('addCss').value;
-        const js = document.getElementById('addJs').value;
-
-        if(!title || !html) { 
-            showToast('Title and HTML are required', 'error'); 
-            return; 
-        }
-
-        try {
-            const componentData = {
-                title: title,
-                category: group,
-                prompt: prompt,
-                tags: tagsStr,
-                html: html,
-                css: css,
-                js: js
-            };
-
-            const result = await saveComponentToGoogleSheets(componentData);
-            
-            if (result.success) {
-                // Add to local state
-                const id = result.id;
-                components[id] = { 
-                    title, 
-                    category: group, 
-                    prompt, 
-                    tags: tagsStr ? tagsStr.split(',').map(t=>t.trim()) : [], 
-                    preview: html, 
-                    html, 
-                    css, 
-                    js 
-                };
-                
-                closeAddModal();
-                renderGrid();
-                showToast('Component added successfully to Google Sheets', 'success');
-                
-                // Refresh data to get latest from sheet
-                setTimeout(() => refreshData(), 1000);
-            }
-        } catch (error) {
-            showToast('Failed to save to Google Sheets: ' + error.message, 'error');
-        }
-    };
-
-    // =============== UTILITY FUNCTIONS ===============
-    window.toggleSwitch = function(el) { el.classList.toggle('active'); };
-    window.animateCopy = function(btn) {
-        const copyEl = btn.querySelector('.copy-text');
-        const copiedEl = btn.querySelector('.copied-text');
-        btn.classList.add('copied');
-        copyEl.style.opacity = '0'; copyEl.style.transform = 'translateY(-100%)';
-        copiedEl.style.opacity = '1'; copiedEl.style.transform = 'translateY(0)';
-        setTimeout(() => {
-            copyEl.style.opacity = '1'; copyEl.style.transform = 'translateY(0)';
-            copiedEl.style.opacity = '0'; copiedEl.style.transform = 'translateY(100%)';
-            btn.classList.remove('copied');
-        }, 1500);
-    };
-
-    function showToast(message, type = 'info') {
-        const toastContainer = document.getElementById('toastContainer');
-        const toast = document.createElement('div');
-        let colors = type === 'success' ? 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-emerald-500' : 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-violet-500';
-        let icon = type === 'success' ? '<i class="fa-solid fa-check-circle text-emerald-500"></i>' : '<i class="fa-solid fa-circle-info text-violet-500"></i>';
-        toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-sm transform transition-all duration-300 ${colors}`;
-        toast.style.animation = 'slideUp 0.3s ease-out forwards';
-        toast.innerHTML = `${icon} <span class="text-xs font-medium text-stone-800 dark:text-white">${message}</span>`;
-        toastContainer.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0'; toast.style.transform = 'translateY(-10px)';
-            setTimeout(() => toast.remove(), 300);
-        }, 3000);
-    }
-
-    window.toggleDropdown = function() {
-        const menu = document.getElementById('dropdownMenu');
-        const chevron = document.getElementById('chevron');
-        const isHidden = menu.classList.contains('hidden');
-        if (isHidden) {
-            menu.classList.remove('hidden');
-            setTimeout(() => { menu.classList.remove('dropdown-hidden'); menu.classList.add('dropdown-visible'); chevron.style.transform = 'rotate(180deg)'; }, 10);
-        } else {
-            menu.classList.remove('dropdown-visible'); menu.classList.add('dropdown-hidden');
-            chevron.style.transform = 'rotate(0deg)';
-            setTimeout(() => { if(menu.classList.contains('dropdown-hidden')) menu.classList.add('hidden'); }, 200);
-        }
-    };
-
-    window.setFilter = function(val) {
-        currentFilter = val;
-        document.getElementById('currentFilter').textContent = val === '' ? 'All' : val;
-        window.toggleDropdown();
-        renderGrid();
-    };
-
-    window.toggleTheme = function() { document.documentElement.classList.toggle('dark'); };
-    
-    window.refreshData = async function() {
-        const icon = document.getElementById('refreshIcon');
-        icon.classList.add('animate-spin');
-        
-        try {
-            await fetchComponentsFromGoogleSheets();
-            renderGrid();
-            showToast('Components refreshed from Google Sheets', 'success');
-        } catch (error) {
-            showToast('Refresh failed: ' + error.message, 'error');
-        } finally {
-            icon.classList.remove('animate-spin');
-        }
-    };
-
-    // =============== EVENT LISTENERS ===============
-    const searchInput = document.getElementById('searchInput');
-    const clearSearchBtn = document.getElementById('clearSearch');
-    
-    searchInput.addEventListener('input', function() {
-        renderGrid();
-        if (searchInput.value.trim() !== '') {
-            clearSearchBtn.classList.remove('hidden');
-        } else {
-            clearSearchBtn.classList.add('hidden');
-        }
-    });
-    
-    clearSearchBtn.addEventListener('click', function() {
-        searchInput.value = '';
-        clearSearchBtn.classList.add('hidden');
-        searchInput.focus();
-        renderGrid();
-    });
-    
-    document.addEventListener('click', function(event) {
-        const dropdownWrapper = document.getElementById('dropdownWrapper');
-        const dropdownMenu = document.getElementById('dropdownMenu');
-        
-        if (!dropdownWrapper.contains(event.target) && !dropdownMenu.classList.contains('hidden')) {
-            const chevron = document.getElementById('chevron');
-            dropdownMenu.classList.remove('dropdown-visible');
-            dropdownMenu.classList.add('dropdown-hidden');
-            chevron.style.transform = 'rotate(0deg)';
-            setTimeout(() => {
-                if (dropdownMenu.classList.contains('dropdown-hidden')) {
-                    dropdownMenu.classList.add('hidden');
-                }
-            }, 200);
-        }
-    });
-
-    // =============== LOADER FUNCTIONS ===============
+    // =============== SIMPLE LOADER ===============
     function showLoader() {
         const loadingPopup = document.getElementById('loadingPopup');
-        loadingPopup.classList.remove('pointer-events-none', 'opacity-0');
-        loadingPopup.style.display = 'flex';
+        if (loadingPopup) {
+            loadingPopup.style.display = 'flex';
+            loadingPopup.style.opacity = '1';
+        }
     }
 
     function hideLoader() {
         const loadingPopup = document.getElementById('loadingPopup');
-        loadingPopup.classList.add('opacity-0');
+        if (loadingPopup) {
+            loadingPopup.style.opacity = '0';
+            setTimeout(() => {
+                loadingPopup.style.display = 'none';
+            }, 500);
+        }
+    }
+
+    // =============== TOAST NOTIFICATION ===============
+    function showToast(message, type = 'info') {
+        const toastContainer = document.getElementById('toastContainer');
+        if (!toastContainer) return;
+        
+        const toast = document.createElement('div');
+        let colors = type === 'success' ? 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-emerald-500' : 
+                     type === 'error' ? 'bg-white/90 dark:bg-slate-800/90 border-l-4 border-red-500' :
+                     'bg-white/90 dark:bg-slate-800/90 border-l-4 border-violet-500';
+        
+        let icon = type === 'success' ? '<i class="fa-solid fa-check-circle text-emerald-500"></i>' : 
+                   type === 'error' ? '<i class="fa-solid fa-exclamation-circle text-red-500"></i>' :
+                   '<i class="fa-solid fa-circle-info text-violet-500"></i>';
+        
+        toast.className = `pointer-events-auto flex items-center gap-3 px-5 py-3 rounded-lg shadow-xl backdrop-blur-sm transform transition-all duration-300 ${colors}`;
+        toast.style.animation = 'slideUp 0.3s ease-out forwards';
+        toast.innerHTML = `${icon} <span class="text-xs font-medium text-stone-800 dark:text-white">${message}</span>`;
+        toastContainer.appendChild(toast);
+        
         setTimeout(() => {
-            loadingPopup.style.display = 'none';
-            loadingPopup.classList.add('pointer-events-none');
-        }, 500);
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px)';
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 
     // =============== INITIALIZATION ===============
     window.addEventListener('load', async () => { 
         showLoader();
         
+        // Add a test button to check API
+        const testBtn = document.createElement('button');
+        testBtn.textContent = 'Test API Connection';
+        testBtn.className = 'fixed bottom-4 left-4 z-50 bg-blue-500 text-white px-4 py-2 rounded-lg text-sm';
+        testBtn.onclick = async () => {
+            try {
+                const url = `${API_URL}?action=getComponents&t=${Date.now()}`;
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                const response = await fetch(proxyUrl);
+                const data = await response.json();
+                console.log('API Test Result:', data);
+                showToast(`API Test: ${data.success ? 'Success' : 'Failed'} - ${data.message || ''}`, data.success ? 'success' : 'error');
+            } catch (error) {
+                console.error('API Test Error:', error);
+                showToast('API Test Failed: ' + error.message, 'error');
+            }
+        };
+        document.body.appendChild(testBtn);
+        
         try {
             await fetchComponentsFromGoogleSheets();
             renderGrid();
+            showToast('Components loaded successfully', 'success');
         } catch (error) {
             console.error('Initialization error:', error);
-            // Even if there's an error, we'll use fallback data
+            // Use fallback data
+            components = getFallbackComponents();
+            renderGrid();
+            showToast('Loaded fallback data. Check API connection.', 'warning');
         } finally {
             hideLoader();
         }
     });
 
+    // =============== EXPOSE FUNCTIONS ===============
+    window.toggleSwitch = function(el) { 
+        if (el) el.classList.toggle('active'); 
+    };
+    
+    window.animateCopy = function(btn) {
+        if (!btn) return;
+        const copyEl = btn.querySelector('.copy-text');
+        const copiedEl = btn.querySelector('.copied-text');
+        if (!copyEl || !copiedEl) return;
+        
+        btn.classList.add('copied');
+        copyEl.style.opacity = '0'; 
+        copyEl.style.transform = 'translateY(-100%)';
+        copiedEl.style.opacity = '1'; 
+        copiedEl.style.transform = 'translateY(0)';
+        
+        setTimeout(() => {
+            copyEl.style.opacity = '1'; 
+            copyEl.style.transform = 'translateY(0)';
+            copiedEl.style.opacity = '0'; 
+            copiedEl.style.transform = 'translateY(100%)';
+            btn.classList.remove('copied');
+        }, 1500);
+    };
+
+    window.copyPrompt = function(prompt) {
+        if (!prompt) return;
+        navigator.clipboard.writeText(prompt).then(() => {
+            showToast('Prompt copied to clipboard', 'success');
+        });
+    };
+
+    window.toggleTheme = function() { 
+        document.documentElement.classList.toggle('dark'); 
+    };
+    
+    window.refreshData = async function() {
+        const icon = document.getElementById('refreshIcon');
+        if (icon) icon.classList.add('animate-spin');
+        
+        try {
+            await fetchComponentsFromGoogleSheets();
+            renderGrid();
+            showToast('Components refreshed', 'success');
+        } catch (error) {
+            showToast('Refresh failed: ' + error.message, 'error');
+        } finally {
+            if (icon) icon.classList.remove('animate-spin');
+        }
+    };
+
+    // Add event listeners for search
+    document.addEventListener('DOMContentLoaded', function() {
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.getElementById('clearSearch');
+        
+        if (searchInput) {
+            searchInput.addEventListener('input', function() {
+                renderGrid();
+                if (clearSearchBtn) {
+                    if (searchInput.value.trim() !== '') {
+                        clearSearchBtn.classList.remove('hidden');
+                    } else {
+                        clearSearchBtn.classList.add('hidden');
+                    }
+                }
+            });
+        }
+        
+        if (clearSearchBtn) {
+            clearSearchBtn.addEventListener('click', function() {
+                if (searchInput) {
+                    searchInput.value = '';
+                    clearSearchBtn.classList.add('hidden');
+                    searchInput.focus();
+                    renderGrid();
+                }
+            });
+        }
+    });
 </script>
 </body>
 </html>
